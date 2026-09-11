@@ -1,4 +1,4 @@
-# UploadGo — Web Preview (Vercel)
+# UploadGo — Web Preview (Netlify)
 
 A faithful, **dependency-free** browser preview of the UploadGo Android app:
 same flow, same screens — Select → Preview → (ZIP) → Share → Queue → History →
@@ -35,24 +35,31 @@ python3 -m http.server 8080
 # open http://localhost:8080
 ```
 
-## Deploy to Vercel
+## Deploy to Netlify
 
-**Option A — drag & drop (fastest)**
-1. Go to https://vercel.com/new
-2. Drag this `web/` folder onto the page. Done — you get a live URL.
+**Option A — Netlify Drop (fastest, ~30 seconds)**
 
-**Option B — Vercel CLI**
-```bash
-npm i -g vercel
-cd web
-vercel            # preview deploy
-vercel --prod     # production deploy
-```
+1. Download this branch as a ZIP:
+   `https://github.com/checkmybio966-hub/Uploadgo/archive/refs/heads/arena/01a0912b-uploadgo.zip`
+2. Extract it and find the **`web`** folder inside.
+3. Open https://app.netlify.com/drop
+4. **Drag the `web` folder** onto the page (the folder itself, not the files
+   inside).
+5. Netlify deploys instantly and gives you a live URL like
+   `https://something-random.netlify.app`.
 
-**Option C — GitHub import**
-1. Push this repository to GitHub.
-2. In Vercel: *Add New → Project → Import* the repo.
-3. Set **Framework Preset = Other** and **Root Directory = `web`**.
-4. Deploy.
+**Option B — GitHub import**
+
+1. In Netlify: *Add new site → Import an existing project → GitHub*.
+2. Pick the `Uploadgo` repo.
+3. Set:
+   - **Branch** = `arena/01a0912b-uploadgo`
+   - **Base directory** = `web`
+   - **Build command** = *(leave empty)*
+   - **Publish directory** = `.`
+4. Click **Deploy**.
+
+The `netlify.toml` in this folder already declares the publish directory and
+security headers, so Option A needs zero configuration.
 
 No environment variables or build command are needed — it's a pure static site.

@@ -1,0 +1,12 @@
+# Netlify configuration for the UploadGo web preview.
+# Pure static site — no build command, no framework, no npm install needed.
+
+[build]
+  publish = "."
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    X-Frame-Options = "DENY"
