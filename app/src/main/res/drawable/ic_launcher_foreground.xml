@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Adaptive icon foreground: a white "upload" glyph centred in the safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M46.5,64 L61.5,64 L61.5,49 L71.5,49 L54,31.5 L36.5,49 L46.5,49 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M36.5,69 L71.5,69 L71.5,74 L36.5,74 Z" />
+</vector>

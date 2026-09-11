@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    FileProvider paths. Only the app's own cache/extracted directory is exposed,
+    so a ZIP can never write outside the application sandbox and no raw file
+    paths are shared with other apps.
+-->
+<paths>
+    <cache-path
+        name="extracted"
+        path="extracted/" />
+</paths>
