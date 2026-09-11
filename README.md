@@ -23,6 +23,7 @@ Quick Share, …) through Android's standard share mechanism.
 | Video preview | ExoPlayer/Media3 streaming: play, pause, seek, duration, full-screen, filename + size — never loads whole files into RAM |
 | ZIP support | Secure streaming extraction to app cache, media thumbnails, per-file selection, Select All / Clear All, unsupported-file reporting |
 | Sharing | `ACTION_SEND` / `ACTION_SEND_MULTIPLE` + `EXTRA_STREAM` + `FLAG_GRANT_READ_URI_PERMISSION`, native Sharesheet, `FileProvider` `content://` URIs |
+| Batch sharing | Large selections are split into smaller batches (default 10) to avoid Telegram's "too many files" error — each batch opens the Sharesheet in turn |
 | Queue | Prepared files, ZIP extraction tasks, recently shared batches — no fake upload progress |
 | History | Persistent Room-backed log of "prepared / shared via Android Sharesheet" events, grouped by day |
 | Settings | Default share behavior, auto-extract ZIP, show unsupported, temp-file cleanup, theme (System/Light/Dark), storage usage + clear |
@@ -110,6 +111,22 @@ action — this is intentional and is reflected in the UI copy
 - Picked files keep their SAF `content://` URIs; extracted ZIP contents are
   served through `FileProvider` (`com.uploadgo.app.fileprovider`). Raw
   `file://` paths are **never** exposed.
+
+### Batch sharing (avoids Telegram's "too many files" error)
+
+Sending 15–20+ files to Telegram in a single `ACTION_SEND_MULTIPLE` often fails.
+UploadGo therefore splits large selections into **batches** (Settings →
+"Files per share batch"; default **10**):
+
+1. Press **Share** once — UploadGo prepares everything and hands the first
+   batch to the Sharesheet.
+2. Pick Telegram (or any app) and send as usual.
+3. When you return to UploadGo, the next batch follows automatically — or a
+   **Continue / Stop** bar appears if the Sharesheet was dismissed.
+
+This is real sequential sharing (each batch is a genuine Sharesheet hand-off),
+never fake "upload progress" — Telegram still performs the actual upload and
+you stay in control of the channel and Send button.
 
 When ZIP files are selected, three actions are offered:
 

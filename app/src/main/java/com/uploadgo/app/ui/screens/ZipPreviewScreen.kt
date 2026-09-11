@@ -61,6 +61,8 @@ import com.uploadgo.app.data.model.MediaKind
 import com.uploadgo.app.data.zip.ZipState
 import com.uploadgo.app.data.zip.ZipStatus
 import com.uploadgo.app.ui.components.MediaThumbnail
+import com.uploadgo.app.ui.components.ShareProgressBanner
+import com.uploadgo.app.ui.components.ShareUiController
 import com.uploadgo.app.ui.components.rememberShareUiController
 import com.uploadgo.app.util.Format
 import kotlinx.coroutines.launch
@@ -144,12 +146,14 @@ fun ZipPreviewScreen(
                         onSelectAll = { store.selectAllInZip(zipId) },
                         onClearAll = { store.clearZipSelection(zipId) },
                         onShareContents = {
-                            shareController.launch { AppGraph.shareService.prepareShareZipMedia(zipId) }
+                            shareController.launch(batchSize = settings.shareBatchSize) {
+                                AppGraph.shareService.prepareShareZipMedia(zipId)
+                            }
                         },
                         onShareOriginal = {
-                            shareController.launch { listOf(zipItem) }
+                            shareController.launch(batchSize = settings.shareBatchSize) { listOf(zipItem) }
                         },
-                        preparing = shareController.preparing,
+                        shareController = shareController,
                     )
                 }
             }
@@ -238,9 +242,10 @@ private fun ZipReadyContent(
     onClearAll: () -> Unit,
     onShareContents: () -> Unit,
     onShareOriginal: () -> Unit,
-    preparing: Boolean,
+    shareController: ShareUiController,
 ) {
     val media = state.media
+    val preparing = shareController.preparing
 
     Column(modifier = Modifier.fillMaxSize()) {
         // Header
@@ -346,6 +351,10 @@ private fun ZipReadyContent(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 10.dp),
         ) {
+            ShareProgressBanner(
+                controller = shareController,
+                modifier = Modifier.padding(bottom = 8.dp),
+            )
             Button(
                 onClick = onShareContents,
                 enabled = included.isNotEmpty() && !preparing,

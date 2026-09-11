@@ -288,7 +288,7 @@ function mainHTML() {
 
 function thumbHTML(item, small = false) {
   if (item.kind === 'image') return `<img class="thumb" src="${item.url}" alt="${escapeHtml(item.name)}" loading="lazy">`;
-  if (item.kind === 'video') return `<video class="thumb" src="${item.url}" muted playsinline preload="metadata"></video>`;
+  if (item.kind === 'video') return `<video class="thumb" src="${item.url}" muted playsinline preload="metadata"></video><span class="thumb-play">${icon('play')}</span>`;
   if (item.kind === 'zip') return `<div class="thumb thumb-zip">📦</div>`;
   return `<div class="thumb thumb-zip">📄</div>`;
 }
@@ -329,14 +329,16 @@ function homeHTML() {
   let html = '';
 
   if (files.length === 0) {
-    html += `<button class="hero" data-action="pick">
-      <span class="plus">${icon('add')}</span>
-      <h2>Select Files</h2>
-      <p>Photos • Videos • ZIP</p>
-    </button>`;
-    html += `<div class="empty">
-      <div class="big">📦</div><h3>No files selected</h3>
-      <p>Tap “Select Files” to pick photos, videos or ZIP archives from your device.</p>
+    html += `<div class="home-empty">
+      <button class="hero" data-action="pick">
+        <span class="plus">${icon('add')}</span>
+        <h2>Select Files</h2>
+        <p>Photos • Videos • ZIP</p>
+      </button>
+      <div class="empty">
+        <div class="big">📦</div><h3>No files selected</h3>
+        <p>Tap “Select Files” to pick photos, videos or ZIP archives from your device.</p>
+      </div>
     </div>`;
   } else {
     html += `<div class="btn-row"><button class="btn btn-outline" data-action="pick">${icon('add')} Select Files</button></div>`;
@@ -473,9 +475,9 @@ function settingsHTML() {
   <button class="radio" data-action="setting-behavior" data-value="contents"><input type="radio" name="behavior" ${s.defaultBehavior === 'contents' ? 'checked' : ''}><span>Share ZIP contents</span></button>
 
   <div class="set-group-title">ZIP</div>
-  ${switchRow('auto_extract', 'Auto-extract ZIP', 'Extract media as soon as a ZIP is selected', s.autoExtract)}
-  ${switchRow('show_unsupported', 'Show unsupported files', 'List skipped files inside ZIP archives', s.showUnsupported)}
-  ${switchRow('delete_temp', 'Delete temporary extracted files after sharing', 'Cleans up extracted ZIP contents a few minutes after sharing', s.deleteTemp)}
+  ${switchRow('autoExtract', 'Auto-extract ZIP', 'Extract media as soon as a ZIP is selected', s.autoExtract)}
+  ${switchRow('showUnsupported', 'Show unsupported files', 'List skipped files inside ZIP archives', s.showUnsupported)}
+  ${switchRow('deleteTemp', 'Delete temporary extracted files after sharing', 'Cleans up extracted ZIP contents a few minutes after sharing', s.deleteTemp)}
 
   <div class="set-group-title">Appearance</div>
   <div class="set-label">Theme</div>
@@ -533,7 +535,9 @@ function imageOverlayHTML(id) {
   const list = imageList();
   const idx = Math.max(0, list.findIndex((f) => f.id === id));
   const item = list[idx];
-  if (!item) return `<div class="overlay dark"><div class="overlay-head">${headRow('', '', () => '')}</div></div>`;
+  if (!item) {
+    return `<div class="overlay dark"><div class="overlay-head"><button class="icon-btn" data-action="overlay-close" style="color:#fff">${icon('close')}</button></div></div>`;
+  }
   viewer.list = list; viewer.index = idx; viewer.scale = 1; viewer.tx = 0; viewer.ty = 0;
   return `<div class="overlay dark">
     <div class="overlay-head">
@@ -683,7 +687,7 @@ function openShare(items) {
   if (!items.length) { showToast('There is nothing selected to share.'); return; }
   state.pendingShare = items;
   state.overlay = { type: 'share' };
-  render();
+  navigate();
 }
 
 async function confirmShare() {
@@ -694,23 +698,27 @@ async function confirmShare() {
     : items.some((f) => f.kind === 'image') ? 'Images'
     : items.some((f) => f.kind === 'video') ? 'Videos' : 'Files';
 
-  // Try the real Web Share API with file attachments (Chrome/Edge on Android).
-  const fileObjects = await Promise.all(items.map(async (f) => {
-    if (f.file) return f.file;
-    try { const blob = await fetch(f.url).then((r) => r.blob()); return new File([blob], f.name, { type: f.type }); }
-    catch { return new File([], f.name, { type: f.type }); }
-  }));
-
   let shared = false;
-  if (navigator.canShare && navigator.canShare({ files: fileObjects })) {
-    try { await navigator.share({ files: fileObjects }); shared = true; }
-    catch (err) { if (err && err.name !== 'AbortError') shared = true; /* treat as handed off */ }
+  try {
+    // Try the real Web Share API with file attachments (Chrome/Edge on Android).
+    const fileObjects = await Promise.all(items.map(async (f) => {
+      if (f.file) return f.file;
+      try { const blob = await fetch(f.url).then((r) => r.blob()); return new File([blob], f.name, { type: f.type }); }
+      catch { return new File([], f.name, { type: f.type }); }
+    }));
+
+    if (navigator.canShare && navigator.canShare({ files: fileObjects })) {
+      try { await navigator.share({ files: fileObjects }); shared = true; }
+      catch (err) { if (err && err.name !== 'AbortError') shared = true; /* treat as handed off */ }
+    }
+  } catch (err) {
+    showToast('Could not prepare the files for sharing.');
   }
 
   recordHistory({ type: 'SHARED', category, itemCount: items.length, detail: 'Shared via Android Sharesheet' });
   if (state.settings.deleteTemp) scheduleExtractedCleanup(items);
   state.overlay = null;
-  render();
+  navigate();
   showToast(shared ? 'Shared via Android Sharesheet' : 'Prepared — choose a sharing app');
 }
 
@@ -745,13 +753,17 @@ fileInput.addEventListener('change', () => {
 
 function handlePicked(list) {
   let skipped = 0;
-  for (const f of list) {
-    const kind = kindOf(f.name);
-    if (kind === 'unsupported') { skipped++; continue; }
-    const url = (kind === 'image' || kind === 'video') ? URL.createObjectURL(f) : null;
-    const item = { id: uid(), name: f.name, size: f.size, type: f.type || mimeFor(f.name), kind, url, source: 'picked', file: f };
-    state.files.push(item);
-    state.included.add(item.id);
+  try {
+    for (const f of list) {
+      const kind = kindOf(f.name);
+      if (kind === 'unsupported') { skipped++; continue; }
+      const url = (kind === 'image' || kind === 'video') ? URL.createObjectURL(f) : null;
+      const item = { id: uid(), name: f.name, size: f.size, type: f.type || mimeFor(f.name), kind, url, source: 'picked', file: f };
+      state.files.push(item);
+      state.included.add(item.id);
+    }
+  } catch (err) {
+    showToast('Could not read one or more of the selected files.');
   }
   render();
   if (skipped) showToast(skipped + ' unsupported file' + (skipped === 1 ? '' : 's') + ' skipped');
@@ -771,10 +783,11 @@ document.addEventListener('click', (e) => {
   const zipId = el.dataset.zip;
 
   switch (action) {
-    case 'tab': state.tab = el.dataset.tab; render(); break;
-    case 'settings': state.tab = 'settings'; render(); break;
-    case 'back': state.tab = 'home'; render(); break;
-    case 'goto-home': state.tab = 'home'; render(); break;
+    case 'tab': state.tab = el.dataset.tab; navigate(); break;
+    case 'settings': state.tab = 'settings'; navigate(); break;
+    case 'back': if (state.overlay) state.overlay = null; else state.tab = 'home'; navigate(); break;
+    case 'goto-home': state.tab = 'home'; navigate(); break;
+    case 'reload': location.reload(); break;
     case 'pick': fileInput.click(); break;
 
     case 'open': openItem(id); break;
@@ -806,14 +819,14 @@ document.addEventListener('click', (e) => {
     case 'zip-share-contents': openShare(collectShareZipMedia(id)); break;
     case 'zip-share-original': { const f = state.files.find((x) => x.id === id); if (f) openShare([f]); break; }
 
-    case 'overlay-close': state.overlay = null; render(); break;
+    case 'overlay-close': state.overlay = null; navigate(); break;
     case 'img-prev': stepImage(-1); break;
     case 'img-next': stepImage(1); break;
     case 'img-zoom-in': zoomImage(1.25); break;
     case 'img-zoom-out': zoomImage(1 / 1.25); break;
     case 'img-reset': viewer.scale = 1; viewer.tx = 0; viewer.ty = 0; applyZoom(); break;
 
-    case 'share-cancel': state.overlay = null; render(); break;
+    case 'share-cancel': state.overlay = null; navigate(); break;
     case 'share-confirm': confirmShare(); break;
 
     case 'setting-behavior': state.settings.defaultBehavior = el.dataset.value; saveSettings(); render(); break;
@@ -851,7 +864,7 @@ document.addEventListener('change', (e) => {
 
 document.addEventListener('keydown', (e) => {
   if (!state.overlay) return;
-  if (e.key === 'Escape') { state.overlay = null; render(); }
+  if (e.key === 'Escape') { state.overlay = null; navigate(); }
   else if (state.overlay.type === 'image') {
     if (e.key === 'ArrowLeft') stepImage(-1);
     else if (e.key === 'ArrowRight') stepImage(1);
@@ -861,8 +874,8 @@ document.addEventListener('keydown', (e) => {
 function openItem(id) {
   const f = state.files.find((x) => x.id === id);
   if (!f) return;
-  if (f.kind === 'image') { state.overlay = { type: 'image', id }; render(); }
-  else if (f.kind === 'video') { state.overlay = { type: 'video', id }; render(); }
+  if (f.kind === 'image') { state.overlay = { type: 'image', id }; navigate(); }
+  else if (f.kind === 'video') { state.overlay = { type: 'video', id }; navigate(); }
   else if (f.kind === 'zip') openZip(id);
 }
 
@@ -870,11 +883,11 @@ async function openZip(id) {
   const f = state.files.find((x) => x.id === id);
   if (!f) return;
   state.overlay = { type: 'zip', id };
-  render();
+  navigate();
   if (!state.zips.has(id) || state.zips.get(id).status !== 'ready') {
     await extractZip(f);
     state.overlay = { type: 'zip', id };
-    render();
+    navigate();
   }
 }
 
@@ -891,7 +904,7 @@ function stepImage(dir) {
   viewer.index = (viewer.index + dir + list.length) % list.length;
   viewer.scale = 1; viewer.tx = 0; viewer.ty = 0;
   state.overlay = { type: 'image', id: list[viewer.index].id };
-  render();
+  navigate();
 }
 
 function zoomImage(factor) {
@@ -930,6 +943,67 @@ document.addEventListener('wheel', (e) => {
   document.addEventListener('pointercancel', () => { dragging = false; });
 })();
 
+/* --------------------------------- routing --------------------------------- */
+
+function hashForState() {
+  if (state.overlay) {
+    const o = state.overlay;
+    if (o.type === 'image') return '#/image/' + encodeURIComponent(o.id);
+    if (o.type === 'video') return '#/video/' + encodeURIComponent(o.id);
+    if (o.type === 'zip') return '#/zip/' + encodeURIComponent(o.id);
+    if (o.type === 'share') return '#/share';
+  }
+  return '#/' + state.tab;
+}
+
+/** Push the current state into the URL hash (adds a history entry → back works). */
+function navigate() {
+  const h = hashForState();
+  if (location.hash === h) { render(); return; }
+  location.hash = h; // triggers hashchange → applyHash → render
+}
+
+/** Read the hash and rehydrate state (used for deep links + browser back). */
+function applyHash() {
+  const h = location.hash || '';
+  const m = h.match(/^#\/(image|video|zip)\/(.+)$/);
+  if (m) {
+    state.overlay = { type: m[1], id: decodeURIComponent(m[2]) };
+  } else if (h === '#/share') {
+    state.overlay = { type: 'share' };
+  } else {
+    state.overlay = null;
+    const t = h.replace(/^#\//, '') || 'home';
+    if (['home', 'queue', 'history', 'settings'].includes(t)) state.tab = t;
+  }
+  render();
+}
+
+window.addEventListener('hashchange', applyHash);
+
+/* ------------------------------ error handling ---------------------------- */
+
+function showFatalError(message) {
+  const app = $('#app');
+  if (app) {
+    app.innerHTML = `<main class="main"><div class="empty">
+      <div class="big">⚠️</div><h3>Something went wrong</h3>
+      <p>${escapeHtml(message || 'An unexpected error occurred. Please reload.')}</p>
+      <button class="btn btn-outline" data-action="reload" style="margin-top:14px">Reload</button>
+    </div></main>`;
+  }
+}
+
+window.addEventListener('error', function (e) {
+  const app = $('#app');
+  if (app && !app.innerHTML.trim()) showFatalError(e.message);
+});
+
 /* --------------------------------- boot ---------------------------------- */
 
-render();
+try {
+  if (!location.hash) history.replaceState(null, '', '#/home');
+  applyHash();
+} catch (err) {
+  showFatalError(err && err.message);
+}

@@ -74,6 +74,7 @@ import com.uploadgo.app.data.model.MediaKind
 import com.uploadgo.app.data.prefs.ShareDefaultBehavior
 import com.uploadgo.app.data.zip.ZipStatus
 import com.uploadgo.app.ui.components.MediaThumbnail
+import com.uploadgo.app.ui.components.ShareProgressBanner
 import com.uploadgo.app.ui.components.rememberShareUiController
 import com.uploadgo.app.util.Format
 import com.uploadgo.app.util.MimeTypes
@@ -120,9 +121,11 @@ fun HomeScreen(
         }
     }
 
-    val shareController = rememberShareUiController { msg ->
-        scope.launch { snackbarHostState.showSnackbar(msg) }
-    }
+    val shareController = rememberShareUiController(
+        onError = { msg ->
+            scope.launch { snackbarHostState.showSnackbar(msg) }
+        },
+    )
     val service = AppGraph.shareService
     val primaryIsContents = settings.defaultBehavior == ShareDefaultBehavior.SHARE_ZIP_CONTENTS
 
@@ -287,10 +290,17 @@ fun HomeScreen(
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 10.dp),
                 ) {
+                    // Multi-batch share progress ("Batch X of Y" + Continue/Stop).
+                    ShareProgressBanner(
+                        controller = shareController,
+                        modifier = Modifier.padding(bottom = 8.dp),
+                    )
                     if (hasZip) {
                         Button(
                             onClick = {
-                                shareController.launch {
+                                shareController.launch(
+                                    batchSize = settings.shareBatchSize,
+                                ) {
                                     if (primaryIsContents) service.prepareShareZipContents()
                                     else service.prepareShareSelected()
                                 }
@@ -318,7 +328,9 @@ fun HomeScreen(
                         Spacer(Modifier.height(8.dp))
                         OutlinedButton(
                             onClick = {
-                                shareController.launch {
+                                shareController.launch(
+                                    batchSize = settings.shareBatchSize,
+                                ) {
                                     if (primaryIsContents) service.prepareShareSelected()
                                     else service.prepareShareZipContents()
                                 }
@@ -335,7 +347,11 @@ fun HomeScreen(
                         }
                         if (includedItems.any { it.isZip }) {
                             TextButton(
-                                onClick = { shareController.launch { service.prepareShareOriginalZips() } },
+                                onClick = {
+                                    shareController.launch(
+                                        batchSize = settings.shareBatchSize,
+                                    ) { service.prepareShareOriginalZips() }
+                                },
                                 enabled = !shareController.preparing,
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
@@ -346,7 +362,11 @@ fun HomeScreen(
                         }
                     } else {
                         Button(
-                            onClick = { shareController.launch { service.prepareShareSelected() } },
+                            onClick = {
+                                shareController.launch(
+                                    batchSize = settings.shareBatchSize,
+                                ) { service.prepareShareSelected() }
+                            },
                             enabled = includedItems.isNotEmpty() && !shareController.preparing,
                             modifier = Modifier.fillMaxWidth(),
                         ) {

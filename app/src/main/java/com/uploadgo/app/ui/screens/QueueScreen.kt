@@ -51,6 +51,7 @@ import com.uploadgo.app.R
 import com.uploadgo.app.data.model.HistoryType
 import com.uploadgo.app.data.prefs.ShareDefaultBehavior
 import com.uploadgo.app.data.zip.ZipStatus
+import com.uploadgo.app.ui.components.ShareProgressBanner
 import com.uploadgo.app.ui.components.rememberShareUiController
 import com.uploadgo.app.util.Format
 import kotlinx.coroutines.launch
@@ -192,9 +193,11 @@ fun QueueScreen(
                                 )
                             }
                             Spacer(Modifier.height(12.dp))
+                            ShareProgressBanner(controller = shareController)
+                            Spacer(Modifier.height(8.dp))
                             Button(
                                 onClick = {
-                                    shareController.launch {
+                                    shareController.launch(batchSize = settings.shareBatchSize) {
                                         val useContents =
                                             settings.defaultBehavior == ShareDefaultBehavior.SHARE_ZIP_CONTENTS &&
                                                 includedItems.any { it.isZip }

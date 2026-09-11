@@ -128,6 +128,46 @@ fun SettingsScreen(onBack: () -> Unit) {
                 )
             }
 
+            // ---- Batch sharing ----
+            item { SectionHeader(stringResource(R.string.files_per_batch)) }
+            item {
+                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp)) {
+                    Text(
+                        text = stringResource(R.string.batch_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            item {
+                RadioRow(
+                    label = stringResource(R.string.batch_10),
+                    selected = settings.shareBatchSize == 10,
+                    onClick = { scope.launch { AppGraph.settingsRepository.setShareBatchSize(10) } },
+                )
+            }
+            item {
+                RadioRow(
+                    label = stringResource(R.string.batch_20),
+                    selected = settings.shareBatchSize == 20,
+                    onClick = { scope.launch { AppGraph.settingsRepository.setShareBatchSize(20) } },
+                )
+            }
+            item {
+                RadioRow(
+                    label = stringResource(R.string.batch_50),
+                    selected = settings.shareBatchSize == 50,
+                    onClick = { scope.launch { AppGraph.settingsRepository.setShareBatchSize(50) } },
+                )
+            }
+            item {
+                RadioRow(
+                    label = stringResource(R.string.batch_all),
+                    selected = settings.shareBatchSize <= 0,
+                    onClick = { scope.launch { AppGraph.settingsRepository.setShareBatchSize(0) } },
+                )
+            }
+
             // ---- ZIP ----
             item { SectionHeader(stringResource(R.string.settings_zip)) }
             item {

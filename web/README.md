@@ -24,6 +24,10 @@ Settings. No build step, no framework, no npm — just `index.html`,
 - **Share** — Web Share API with real file attachments where supported,
   otherwise a Sharesheet-style dialog. Records history only — it never claims a
   remote app delivered the files.
+- **Centered hero** — the "Select Files" card sits vertically centred on the
+  empty home screen; the Home tab, Queue and History also have clean spacing.
+- **Video previews** — video tiles show a live frame with a play badge, and
+  tapping opens the full video player.
 - **Queue / History / Settings** — history persists in `localStorage`; theme
   (System/Light/Dark) and ZIP/storage settings.
 

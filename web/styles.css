@@ -120,9 +120,20 @@ button {
   flex: 1;
   overflow-y: auto;
   padding: 4px 16px 16px;
+  display: flex;
+  flex-direction: column;
   scrollbar-width: thin;
 }
 .main > * { margin-top: 10px; }
+
+/* Centres the "Select Files" hero + hint vertically on an empty home screen. */
+.home-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+}
 
 .bottomnav {
   display: flex;
@@ -249,6 +260,18 @@ button {
 .tile:active { transform: scale(0.98); }
 .tile .thumbwrap { position: relative; aspect-ratio: 1; background: var(--surface-variant); }
 .tile .thumb { width: 100%; height: 100%; object-fit: cover; display: block; }
+.thumb-play {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 34px; height: 34px; border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none;
+}
+.thumb-play svg { width: 20px; height: 20px; }
+.listrow .thumb-play { width: 22px; height: 22px; }
+.listrow .thumb-play svg { width: 13px; height: 13px; }
 .tile .thumb-zip {
   display: flex; align-items: center; justify-content: center;
   font-size: 40px; background: var(--secondary-container);

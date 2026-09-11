@@ -55,19 +55,32 @@ class ShareService(
 
     fun chooserFor(items: List<MediaItem>): Intent? = shareManager.buildChooser(items)
 
-    /** Called after the Sharesheet was shown: records history + cleanup. */
-    suspend fun finalizeShare(items: List<MediaItem>) {
+    /** Records one shared batch in the local history. */
+    suspend fun recordShared(items: List<MediaItem>) {
         historyRepository.recordShared(items)
+    }
+
+    /**
+     * Schedules deferred cleanup for the extracted contents of [items] once the
+     * whole share operation is finished (never while batches are still being
+     * handed off).
+     */
+    suspend fun cleanupAfterShare(items: List<MediaItem>) {
         val deleteTemp = settingsRepository.settings.first().deleteTempAfterShare
-        if (deleteTemp) {
-            items.filter { it.isExtracted }
-                .mapNotNull { it.originZipId }
-                .distinct()
-                .forEach { zipId ->
-                    sessionStore.zipStateFor(zipId)?.outputDir?.let { dir ->
-                        tempFileManager.scheduleCleanup(dir)
-                    }
+        if (!deleteTemp) return
+        items.filter { it.isExtracted }
+            .mapNotNull { it.originZipId }
+            .distinct()
+            .forEach { zipId ->
+                sessionStore.zipStateFor(zipId)?.outputDir?.let { dir ->
+                    tempFileManager.scheduleCleanup(dir)
                 }
-        }
+            }
+    }
+
+    /** Convenience: record + cleanup in one call. */
+    suspend fun finalizeShare(items: List<MediaItem>) {
+        recordShared(items)
+        cleanupAfterShare(items)
     }
 }

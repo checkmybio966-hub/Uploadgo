@@ -29,6 +29,9 @@
     <string name="error_nothing_to_share">There is nothing selected to share.</string>
     <string name="error_no_share_target">No app is available to share these files.</string>
     <string name="error_share_failed">Could not prepare the files for sharing.</string>
+    <string name="sharing_batch">Batch %1$d of %2$d — hand the files to the app for each batch.</string>
+    <string name="continue_sharing">Continue</string>
+    <string name="stop_sharing">Stop</string>
 
     <!-- Tabs -->
     <string name="tab_home">Home</string>
@@ -79,6 +82,12 @@
     <string name="settings">Settings</string>
     <string name="settings_sharing">Sharing</string>
     <string name="default_share_behavior">Default share behavior</string>
+    <string name="files_per_batch">Files per share batch</string>
+    <string name="batch_hint">Sending in smaller batches avoids errors in apps like Telegram when sharing many files at once.</string>
+    <string name="batch_10">10 files (recommended)</string>
+    <string name="batch_20">20 files</string>
+    <string name="batch_50">50 files</string>
+    <string name="batch_all">All at once</string>
     <string name="behavior_share_selected">Share selected files</string>
     <string name="behavior_share_zip_contents">Share ZIP contents</string>
     <string name="settings_zip">ZIP</string>

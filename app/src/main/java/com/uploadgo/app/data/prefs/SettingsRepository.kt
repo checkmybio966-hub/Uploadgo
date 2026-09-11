@@ -3,6 +3,7 @@ package com.uploadgo.app.data.prefs
 import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
@@ -19,6 +20,12 @@ data class Settings(
     val showUnsupported: Boolean = true,
     val deleteTempAfterShare: Boolean = true,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
+    /**
+     * Maximum files handed to the Sharesheet in a single batch. Values <= 0
+     * mean "all at once". Smaller batches (e.g. 10) avoid errors in apps like
+     * Telegram that reject very large single imports.
+     */
+    val shareBatchSize: Int = 10,
 )
 
 class SettingsRepository(private val context: Context) {
@@ -29,6 +36,7 @@ class SettingsRepository(private val context: Context) {
         val SHOW_UNSUPPORTED = booleanPreferencesKey("show_unsupported")
         val DELETE_TEMP = booleanPreferencesKey("delete_temp_after_share")
         val THEME = stringPreferencesKey("theme_mode")
+        val SHARE_BATCH_SIZE = intPreferencesKey("share_batch_size")
     }
 
     val settings: Flow<Settings> = context.dataStore.data.map { p ->
@@ -38,6 +46,7 @@ class SettingsRepository(private val context: Context) {
             showUnsupported = p[Keys.SHOW_UNSUPPORTED] ?: true,
             deleteTempAfterShare = p[Keys.DELETE_TEMP] ?: true,
             themeMode = enumValueOrDefault(p[Keys.THEME], ThemeMode.SYSTEM),
+            shareBatchSize = p[Keys.SHARE_BATCH_SIZE] ?: 10,
         )
     }
 
@@ -55,6 +64,9 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setThemeMode(value: ThemeMode) =
         context.dataStore.edit { it[Keys.THEME] = value.name }
+
+    suspend fun setShareBatchSize(value: Int) =
+        context.dataStore.edit { it[Keys.SHARE_BATCH_SIZE] = value }
 
     private inline fun <reified T : Enum<T>> enumValueOrDefault(name: String?, default: T): T =
         if (name != null) runCatching { enumValueOf<T>(name) }.getOrDefault(default) else default
