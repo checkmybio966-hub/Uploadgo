@@ -52,9 +52,9 @@ class ShareManager(private val context: Context) {
     }
 
     /**
-     * Picks a sensible MIME type for a mixed batch. A "*/*" fallback keeps the
-     * Sharesheet available for any target, but more specific types (image/*,
-     * video/*) are preferred so targets filter correctly.
+     * Picks a sensible MIME type for a mixed batch. A generic fallback keeps
+     * the Sharesheet available for any target, but more specific types such as
+     * image and video are preferred so targets filter correctly.
      */
     private fun commonMimeType(items: List<MediaItem>): String {
         val mimes = items.map { it.mimeType ?: MimeTypes.OCTET_STREAM }.distinct()
